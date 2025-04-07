@@ -61,8 +61,8 @@ ParameterKey=DomainCertificateARN,ParameterValue=$DOMAIN_CERTIFICATE_ARN \
 ParameterKey=RegionalDomainCertificateARN,ParameterValue=$REGIONAL_DOMAIN_CERTIFICATE_ARN \
 ParameterKey=S3CodeBucket,ParameterValue=$AWS_CODE_BUCKET \
 ParameterKey=CodeVersion,ParameterValue=$new_version \
-ParameterKey=Subnet1ID,ParameterValue=$AWS_SUBNET1_ID \
-ParameterKey=Subnet2ID,ParameterValue=$AWS_SUBNET2_ID \
+ParameterKey=Subnet1ID,ParameterValue=$AWS_SUBNET_1_ID \
+ParameterKey=Subnet2ID,ParameterValue=$AWS_SUBNET_2_ID \
 ParameterKey=VPCID,ParameterValue=$AWS_VPC_ID \
 ParameterKey=DBName,ParameterValue=$AWS_DB_NAME \
 ParameterKey=DBMasterUsername,ParameterValue=$AWS_DB_MASTER_USERNAME \
@@ -78,6 +78,7 @@ ParameterKey=MaxCapacity,ParameterValue=$AWS_MAX_CAPACITY \
 ParameterKey=MinCapacity,ParameterValue=$AWS_MIN_CAPACITY \
 ParameterKey=SecondsUntilAutoPause,ParameterValue=$AWS_SECONDS_UNTIL_AUTO_PAUSE \
 ParameterKey=EngineVersion,ParameterValue=$AWS_ENGINE_VERSION \
+ParameterKey=EmailAddress,ParameterValue=$AWS_EMAIL_NOTIFICATION_ADDRESS \
 --capabilities CAPABILITY_IAM
 # Wait for stack update to complete
 echo "Waiting for stack update to complete..."

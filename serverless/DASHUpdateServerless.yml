@@ -118,6 +118,10 @@ Parameters:
     AllowedValues: ['14.3', '13.7', '10.18.3']
     Default: '14.3'
 
+  EmailAddress:
+    Description: 'Email address to receive RDS notifications'
+    Type: String
+
 Resources:
   SocketGatewayStack:
     Type: AWS::CloudFormation::Stack
@@ -137,6 +141,7 @@ Resources:
         VPCID: !Ref VPCID
         DBName: !Ref DBName
         Env: !Ref Env
+        EmailAddress: !Ref EmailAddress
         DBMasterUsername: !Ref DBMasterUsername
         DBMasterUserPassword: !Ref DBMasterUserPassword
         DBSnapshotIdentifier: !Ref DBSnapshotIdentifier
