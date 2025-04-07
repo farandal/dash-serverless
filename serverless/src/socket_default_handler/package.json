@@ -1,5 +1,6 @@
 {
     "name": "socket-default-handler",
+    "lambda": "PWSocketDefaultHandler",
     "description": "Socket Default Handler",
     "type": "module",
     "version": "1.0",
@@ -8,3 +9,4 @@
     "license": "ISC"
    
   }
+  

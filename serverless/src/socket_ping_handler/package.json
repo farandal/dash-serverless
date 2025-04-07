@@ -1,5 +1,6 @@
 {
     "name": "socket-ping-handler",
+    "lambda": "PWSocketPingHandler",
     "description": "Socket Ping Handler",
     "type": "module",
     "version": "1.0",

@@ -1,5 +1,6 @@
 {
     "name": "socket-webrtc-signaling-handler",
+    "lambda": "PWSocketWebrtcSignalingHandler",
     "description": "Socket Message Handler",
     "type": "module",
     "version": "1.0",

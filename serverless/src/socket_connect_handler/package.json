@@ -1,5 +1,6 @@
 {
     "name": "socket-connect-handler",
+    "lambda": "PWSocketDisconnectHandler",
     "description": "Socket Connect Handler",
     "type": "module",
     "version": "1.0",

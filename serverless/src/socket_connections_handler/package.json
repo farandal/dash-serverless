@@ -1,5 +1,6 @@
 {
     "name": "socket-ping-handler",
+    "lambda": "PWSocketPingHandler",
     "description": "Socket Ping Handler",
     "type": "module",
     "version": "1.0",
@@ -7,3 +8,4 @@
     "author": "Francisco Aranda L <farandal@gmail.com>",
     "license": "ISC"
   }
+

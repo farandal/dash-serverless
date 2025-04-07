@@ -12,6 +12,7 @@
     "deploy-lambdas-toFix": "cd ./aws && npx ts-node -r dotenv/config ./upload.mjs",  
     "create-stack": "./aws/createStack.sh",    
     "upload": "cd ./aws && npx ts-node -r dotenv/config ./upload.mjs",  
+    "upload-lambdas": "cd ./aws && npx ts-node -r dotenv/config ./upload-lambdas.mjs",  
     "update-stack": "./aws/updateStack.sh",
     "build": "yarn build-layer && yarn build-lambdas",
     "aws-ci": "yarn build-layer && yarn deploy-lambdas && yarn update-stack"

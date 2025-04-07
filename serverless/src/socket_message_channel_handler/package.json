@@ -1,5 +1,6 @@
 {
     "name": "socket-message-handler",
+    "lambda": "PWSocketMessageChannelHandler",
     "description": "Socket Message Handler",
     "type": "module",
     "version": "1.0",
