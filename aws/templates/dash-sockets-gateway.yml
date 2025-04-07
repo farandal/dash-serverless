@@ -1,0 +1,690 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: DASH Serverless Socket Gateway Stack
+
+Parameters:
+# DOMAIN, CERTIFICATES, VPC, SUBNETS
+  S3CodeBucket:
+    Description: S3 Code Bucket
+    Type: String
+    Default: dash-stack-code
+  NodeJsLambdaLayerName:
+    Description: dash-lambda-layer
+    Type: String
+    Default: dash-lambda-layer
+
+Resources:
+  DASHServerlessNodeJsLayer:
+    Type: "AWS::Lambda::LayerVersion"
+    Properties:
+      CompatibleRuntimes:
+        - nodejs18.x
+      Content:
+        S3Bucket: !Ref S3CodeBucket
+        S3Key: dash-lambda-layer.zip
+      Description: DASH Com NodeJS Lambda layer
+      LayerName: !Ref NodeJsLambdaLayerName
+      LicenseInfo: MIT
+  DASHServerlessLambdaFunctionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+          - Effect: Allow
+            Principal:
+              Service:
+                - apigateway.amazonaws.com
+            Action:
+              - sts:AssumeRole
+          - Effect: Allow
+            Principal:
+              Service:
+                - logs.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: dash-lambda-logs-policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:DescribeLogGroups
+                  - logs:DescribeLogStreams
+                  - logs:PutLogEvents
+                  - logs:GetLogEvents
+                  - logs:FilterLogEvent
+                Resource:
+                  - "*"
+        - PolicyName: dash-secrets-manager-policy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource:
+                  - "*"
+        - PolicyName: dash-dynamodb-policy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:*
+                Resource:
+                  - "*"
+        - PolicyName: dash-manage-connections
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - execute-api:ManageConnections
+                Resource:
+                  - "*"
+        - PolicyName: dash-s3-upload-policy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:DeleteObject
+                  - s3:GetObjectVersion
+                  - s3:DeleteObjectVersion
+                  - s3:GetBucketLocation
+                  - s3:ListBucket
+                  - s3:PutBucketPolicy
+                  - s3:GetBucketPolicy
+                  - s3:DeleteBucketPolicy
+                  - s3:PutBucketVersioning
+                  - s3:GetBucketVersioning
+                  - s3:DeleteBucketVersioning
+                  - s3:PutBucketAcl
+                  - s3:GetBucketAcl
+                  - s3:DeleteBucketAcl
+                  - s3:PutObjectAcl
+                  - s3:GetObjectAcl
+                  - s3:DeleteObjectAcl
+                Resource:
+                  #- 'arn:aws:s3:::my-bucket/*'
+                  - "*"
+
+  ApiGatewayAccount:
+    Type: "AWS::ApiGateway::Account"
+    Properties:
+      CloudWatchRoleArn: !GetAtt DASHServerlessLambdaFunctionRole.Arn
+
+
+  # SOCKET CHANNELS
+  # TODO: Replace Dynamo for Redis for example.. later
+  DASHServerlessConnectionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      KeySchema:
+        - AttributeName: connectionId
+          KeyType: HASH
+      AttributeDefinitions:
+        - AttributeName: connectionId
+          AttributeType: S
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+
+  DASHServerlessConnectHandler:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: DASHServerlessConnectHandler
+      LoggingConfig:
+        ApplicationLogLevel: TRACE
+        LogGroup: !Ref DASHServerlessLogGroup
+        LogFormat: JSON
+        SystemLogLevel: INFO
+      Code:
+        S3Bucket: !Ref S3CodeBucket
+        S3Key: socket_connect_handler.zip
+      Layers:
+        - !Ref DASHServerlessNodeJsLayer
+
+      Role:
+        Fn::GetAtt:
+          - DASHServerlessLambdaFunctionRole
+          - Arn
+      Environment:
+        Variables:
+          table:
+            Ref: DASHServerlessConnectionsTable
+      Handler: index.handler
+      Runtime: nodejs18.x
+    DependsOn:
+      - DASHServerlessLambdaFunctionRole
+
+  DASHServerlessDisconnectHandler:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: DASHServerlessDisconnectHandler
+      LoggingConfig:
+        ApplicationLogLevel: TRACE
+        LogGroup: !Ref DASHServerlessLogGroup
+        LogFormat: JSON
+        SystemLogLevel: INFO
+      Code:
+        S3Bucket: !Ref S3CodeBucket
+        S3Key: socket_disconnect_handler.zip
+      Layers:
+        - !Ref DASHServerlessNodeJsLayer
+
+      Role:
+        Fn::GetAtt:
+          - DASHServerlessLambdaFunctionRole
+          - Arn
+      Environment:
+        Variables:
+          table:
+            Ref: DASHServerlessConnectionsTable
+          region: !Sub "${AWS::Region}"
+      Handler: index.handler
+      Runtime: nodejs18.x
+ 
+  DASHServerlessSendMessageHandler:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: DASHServerlessMessageHandler
+      LoggingConfig:
+        ApplicationLogLevel: TRACE
+        LogGroup: !Ref DASHServerlessLogGroup
+        LogFormat: JSON
+        SystemLogLevel: INFO
+      Code:
+        S3Bucket: !Ref S3CodeBucket
+        S3Key: socket_message_handler.zip
+      Layers:
+        - !Ref DASHServerlessNodeJsLayer
+
+      Role:
+        Fn::GetAtt:
+          - DASHServerlessLambdaFunctionRole
+          - Arn
+      Environment:
+        Variables:
+          table:
+            Ref: DASHServerlessConnectionsTable
+          region: !Sub "${AWS::Region}"
+      Handler: index.handler
+      Runtime: nodejs18.x
+
+  DASHServerlessDefaultHandler:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: DASHServerlessDefaultHandler
+      LoggingConfig:
+        ApplicationLogLevel: TRACE
+        LogGroup: !Ref DASHServerlessLogGroup
+        LogFormat: JSON
+        SystemLogLevel: INFO
+      Code:
+        S3Bucket: !Ref S3CodeBucket
+        S3Key: socket_default_handler.zip
+      Layers:
+        - !Ref DASHServerlessNodeJsLayer
+
+      Role:
+        Fn::GetAtt:
+          - DASHServerlessLambdaFunctionRole
+          - Arn
+      Handler: index.handler
+      Runtime: nodejs18.x
+
+  DASHServerlessmanageConnections:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action: execute-api:ManageConnections
+            Effect: Allow
+            Resource:
+              Fn::Join:
+                - ""
+                - - "arn:aws:execute-api:"
+                  - Ref: AWS::Region
+                  - ":"
+                  - Ref: AWS::AccountId
+                  - ":"
+                  - "*/*/POST/@connections/*"
+        Version: "2012-10-17"
+      PolicyName: DASHServerlessManageConnections
+      Roles:
+        - Ref: DASHServerlessLambdaFunctionRole
+
+  DASHServerlessLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Join
+        - "-"
+        - - !Ref DASHServerlessApi
+          - logs
+
+  DASHServerlessStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref DASHServerlessApi
+      AutoDeploy: true
+      StageName: prod
+      #AccessLogSetting:
+      #  DestinationArn: !GetAtt DASHServerlessLogGroup.Arn
+      #  Format: '$context.extendedRequestId'
+
+  DASHServerlessApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: DASHServerlessApi
+      ProtocolType: WEBSOCKET
+      RouteSelectionExpression: $request.body.action
+      #ApiKeySelectionExpression: $request.header.x-api-key
+
+  DASHServerlessConnectIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    DependsOn:
+      - DASHServerlessApi
+      - DASHServerlessStage
+      - DASHServerlessConnectHandler
+    Properties:
+      ApiId: !Ref DASHServerlessApi
+      Description: Integration for DASHServerlessApi
+      IntegrationType: AWS_PROXY
+      IntegrationMethod: POST
+      IntegrationUri: !Join
+        - ""
+        - - "arn:"
+          - !Ref "AWS::Partition"
+          - ":apigateway:"
+          - !Ref "AWS::Region"
+          - ":lambda:path/2015-03-31/functions/"
+          - !GetAtt DASHServerlessConnectHandler.Arn
+          - /invocations
+      PayloadFormatVersion: 1.0
+
+  DASHServerlessConnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref DASHServerlessApi
+      RouteKey: $connect
+      Target: !Sub "integrations/${DASHServerlessConnectIntegration}"
+
+  DASHServerlessDisconnectIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    DependsOn:
+      - DASHServerlessApi
+      - DASHServerlessStage
+      - DASHServerlessDisconnectHandler
+    Properties:
+      ApiId: !Ref DASHServerlessApi
+      Description: Integration for DASHServerlessApi
+      IntegrationType: AWS_PROXY
+      IntegrationMethod: POST
+      IntegrationUri: !Join
+        - ""
+        - - "arn:"
+          - !Ref "AWS::Partition"
+          - ":apigateway:"
+          - !Ref "AWS::Region"
+          - ":lambda:path/2015-03-31/functions/"
+          - !GetAtt DASHServerlessDisconnectHandler.Arn
+          - /invocations
+      PayloadFormatVersion: 1.0
+
+  DASHServerlessDisconnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref DASHServerlessApi
+      RouteKey: $disconnect
+      Target: !Sub "integrations/${DASHServerlessDisconnectIntegration}"
+
+  DASHServerlessDefaultIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    DependsOn:
+      - DASHServerlessApi
+      - DASHServerlessStage
+      - DASHServerlessDefaultHandler
+    Properties:
+      ApiId: !Ref DASHServerlessApi
+      Description: Integration for DASHServerlessApi
+      IntegrationType: AWS_PROXY
+      IntegrationMethod: POST
+      IntegrationUri: !Join
+        - ""
+        - - "arn:"
+          - !Ref "AWS::Partition"
+          - ":apigateway:"
+          - !Ref "AWS::Region"
+          - ":lambda:path/2015-03-31/functions/"
+          - !GetAtt DASHServerlessDefaultHandler.Arn
+          - /invocations
+      PayloadFormatVersion: 1.0
+
+  DASHServerlessDefaultRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref DASHServerlessApi
+      RouteKey: $default
+      Target: !Sub "integrations/${DASHServerlessDefaultIntegration}"
+
+  DASHServerlessSendMessageIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    DependsOn:
+      - DASHServerlessApi
+      - DASHServerlessStage
+      - DASHServerlessSendMessageHandler
+    Properties:
+      ApiId: !Ref DASHServerlessApi
+      Description: Integration for DASHServerlessApi
+      IntegrationType: AWS_PROXY
+      IntegrationMethod: POST
+      IntegrationUri: !Join
+        - ""
+        - - "arn:"
+          - !Ref "AWS::Partition"
+          - ":apigateway:"
+          - !Ref "AWS::Region"
+          - ":lambda:path/2015-03-31/functions/"
+          - !GetAtt DASHServerlessSendMessageHandler.Arn
+          - /invocations
+      PayloadFormatVersion: 1.0
+
+  DASHServerlessSendMessageRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref DASHServerlessApi
+      RouteKey: send
+      Target: !Sub "integrations/${DASHServerlessSendMessageIntegration}"
+
+  # PING
+
+  DASHServerlessPingHandler:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: DASHServerlessPingHandler
+      LoggingConfig:
+        ApplicationLogLevel: TRACE
+        LogGroup: !Ref DASHServerlessLogGroup
+        LogFormat: JSON
+        SystemLogLevel: INFO
+      Code:
+        S3Bucket: !Ref S3CodeBucket
+        S3Key: socket_ping_handler.zip
+      Layers:
+        - !Ref DASHServerlessNodeJsLayer
+
+      Role:
+        Fn::GetAtt:
+          - DASHServerlessLambdaFunctionRole
+          - Arn
+      Environment:
+        Variables:
+          table:
+            Ref: DASHServerlessConnectionsTable
+          region: !Sub "${AWS::Region}"
+      Handler: index.handler
+      Runtime: nodejs18.x
+    DependsOn:
+      - DASHServerlessLambdaFunctionRole
+
+  DASHServerlessPingRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref DASHServerlessApi
+      RouteKey: ping
+      Target: !Sub "integrations/${DASHServerlessPingIntegration}"
+
+  DASHServerlessPingIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    DependsOn:
+      - DASHServerlessApi
+      - DASHServerlessStage
+      - DASHServerlessPingHandler
+    Properties:
+      ApiId: !Ref DASHServerlessApi
+      Description: Integration for DASHServerlessApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Join
+        - ""
+        - - "arn:"
+          - !Ref "AWS::Partition"
+          - ":apigateway:"
+          - !Ref "AWS::Region"
+          - ":lambda:path/2015-03-31/functions/"
+          - !GetAtt DASHServerlessPingHandler.Arn
+          - /invocations
+      PayloadFormatVersion: 1.0
+
+  # MESSAGE ALL EXCEPT ME
+
+  DASHServerlessMessageChannelHandler:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: DASHServerlessMessageChannelHandler
+      LoggingConfig:
+        ApplicationLogLevel: TRACE
+        LogGroup: !Ref DASHServerlessLogGroup
+        LogFormat: JSON
+        SystemLogLevel: INFO
+      Code:
+        S3Bucket: !Ref S3CodeBucket
+        S3Key: socket_message_channel_handler.zip
+      Layers:
+        - !Ref DASHServerlessNodeJsLayer
+
+      Role:
+        Fn::GetAtt:
+          - DASHServerlessLambdaFunctionRole
+          - Arn
+      Environment:
+        Variables:
+          table:
+            Ref: DASHServerlessConnectionsTable
+          region: !Sub "${AWS::Region}"
+      Handler: index.handler
+      Runtime: nodejs18.x
+    DependsOn:
+      - DASHServerlessLambdaFunctionRole
+
+  DASHServerlessMessageChannelRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref DASHServerlessApi
+      RouteKey: all
+      Target: !Sub "integrations/${DASHServerlessPingIntegration}"
+
+  DASHServerlessMessageChannelIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    DependsOn:
+      - DASHServerlessApi
+      - DASHServerlessStage
+      - DASHServerlessMessageChannelHandler
+    Properties:
+      ApiId: !Ref DASHServerlessApi
+      Description: Integration for DASHServerlessApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Join
+        - ""
+        - - "arn:"
+          - !Ref "AWS::Partition"
+          - ":apigateway:"
+          - !Ref "AWS::Region"
+          - ":lambda:path/2015-03-31/functions/"
+          - !GetAtt DASHServerlessMessageChannelHandler.Arn
+          - /invocations
+      PayloadFormatVersion: 1.0
+
+# WEB RTC SIGNALING
+
+  DASHServerlessWebrtcSignalingHandler:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: DASHServerlessWebrtcSignalingHandler
+      LoggingConfig:
+        ApplicationLogLevel: TRACE
+        LogGroup: !Ref DASHServerlessLogGroup
+        LogFormat: JSON
+        SystemLogLevel: INFO
+      Code:
+        S3Bucket: !Ref S3CodeBucket
+        S3Key: socket_webrtc_signaling_handler.zip
+      Layers:
+        - !Ref DASHServerlessNodeJsLayer
+
+      Role:
+        Fn::GetAtt:
+          - DASHServerlessLambdaFunctionRole
+          - Arn
+      Environment:
+        Variables:
+          table:
+            Ref: DASHServerlessConnectionsTable
+          region: !Sub "${AWS::Region}"
+      Handler: index.handler
+      Runtime: nodejs18.x
+    DependsOn:
+      - DASHServerlessLambdaFunctionRole
+
+  DASHServerlessWebrtcSignalingRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref DASHServerlessApi
+      RouteKey: webrtc
+      Target: !Sub "integrations/${DASHServerlessWebrtcSignalingIntegration}"
+
+  DASHServerlessWebrtcSignalingIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    DependsOn:
+      - DASHServerlessApi
+      - DASHServerlessStage
+      - DASHServerlessWebrtcSignalingHandler
+    Properties:
+      ApiId: !Ref DASHServerlessApi
+      Description: Integration for DASHServerlessApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Join
+        - ""
+        - - "arn:"
+          - !Ref "AWS::Partition"
+          - ":apigateway:"
+          - !Ref "AWS::Region"
+          - ":lambda:path/2015-03-31/functions/"
+          - !GetAtt DASHServerlessWebrtcSignalingHandler.Arn
+          - /invocations
+      PayloadFormatVersion: 1.0
+
+# SOCKET CONNECTIONS
+
+  DASHServerlessConnectionsHandler:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: DASHServerlessConnectionsHandler
+      LoggingConfig:
+        ApplicationLogLevel: TRACE
+        LogGroup: !Ref DASHServerlessLogGroup
+        LogFormat: JSON
+        SystemLogLevel: INFO
+      Code:
+        S3Bucket: !Ref S3CodeBucket
+        S3Key: socket_connections_handler.zip
+      Layers:
+        - !Ref DASHServerlessNodeJsLayer
+
+      Role:
+        Fn::GetAtt:
+          - DASHServerlessLambdaFunctionRole
+          - Arn
+      Environment:
+        Variables:
+          table:
+            Ref: DASHServerlessConnectionsTable
+          region: !Sub "${AWS::Region}"
+      Handler: index.handler
+      Runtime: nodejs18.x
+    DependsOn:
+      - DASHServerlessLambdaFunctionRole
+
+  DASHServerlessDisconnectHandlerPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref DASHServerlessDisconnectHandler
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${DASHServerlessApi}/*/$disconnect"
+
+  DASHServerlessDefaultHandlerPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref DASHServerlessDefaultHandler
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${DASHServerlessApi}/*/$default"
+
+  DASHServerlessSendMessageHandlerPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref DASHServerlessSendMessageHandler
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${DASHServerlessApi}/*/send"
+
+  DASHServerlessPingHandlerPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref DASHServerlessPingHandler
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${DASHServerlessApi}/*/ping"
+
+  DASHServerlessMessageChannelHandlerPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref DASHServerlessMessageChannelHandler
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${DASHServerlessApi}/*/all"
+
+  DASHServerlessWebrtcSignalingHandlerPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref DASHServerlessWebrtcSignalingHandler
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${DASHServerlessApi}/*/webrtc"
+
+  DASHServerlessConnectionsHandlerPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref DASHServerlessConnectionsHandler 
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${DASHServerlessApi}/*/connections"
+
+  DASHServerlessConnectHandlerPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref DASHServerlessConnectHandler
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${DASHServerlessApi}/*/$connect"
+# TODO, API to get the connections
