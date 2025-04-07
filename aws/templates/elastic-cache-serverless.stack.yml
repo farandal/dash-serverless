@@ -1,0 +1,67 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'State: ElastiCache Redis Serverless - Minimum configuration'
+Parameters:
+  AwsRegion:
+    Type: String
+  Subnet1ID:
+    Type: String
+  Subnet2ID:
+    Type: String
+  VPCID:
+    Type: String
+  EmailAddress:
+    Description: 'Email address to receive ElastiCache notifications'
+    Type: String
+  Env:
+    Description: 'Environment name'
+    Type: String
+    AllowedValues: ['staging', 'production']
+    Default: 'staging'
+
+Resources:
+  RedisSNSTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+        Subscription:
+        - Endpoint: !Ref EmailAddress
+          Protocol: "email"
+        TopicName: !Sub "dash-${Env}-redis-topic"
+
+  RedisSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub "dash-${Env}-redis-sg-v2"
+      GroupDescription: Security group for DASH Redis
+      VpcId: !Ref VPCID
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 6379
+          ToPort: 6379
+          CidrIp: 0.0.0.0/0
+
+  RedisSubnetGroup:
+    Type: AWS::ElastiCache::SubnetGroup
+    Properties:
+      Description: !Sub "Subnet group for DASH Redis ${Env}"
+      CacheSubnetGroupName: !Sub "dash-${Env}-redis-subnet-group-${AwsRegion}-v2"  # Changed from SubnetGroupName
+      SubnetIds:
+        - !Ref Subnet1ID
+        - !Ref Subnet2ID
+
+  RedisServerless:
+    Type: AWS::ElastiCache::ServerlessCache
+    Properties:
+      ServerlessCacheName: !Sub "dash-${Env}-redis-v2"  # Changed from CacheName
+      Description: !Sub "Serverless Redis for DASH ${Env}"
+      Engine: redis
+      CacheUsageLimits:
+        DataStorage:
+          Maximum: 5
+          Unit: GB
+        ECPUPerSecond:
+          Maximum: 10000
+      SecurityGroupIds:
+        - !Ref RedisSecurityGroup
+      SubnetIds:
+        - !Ref Subnet1ID
+        - !Ref Subnet2ID

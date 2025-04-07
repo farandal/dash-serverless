@@ -159,3 +159,15 @@ Resources:
         MinCapacity: !Ref MinCapacity
         SecondsUntilAutoPause: !Ref SecondsUntilAutoPause
         EngineVersion: !Ref EngineVersion
+
+  ElasticCacheStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub https://${S3CodeBucket}.s3.${AwsRegion}.amazonaws.com/templates/elastic-cache-serverless.stack.yml
+      Parameters:
+        AwsRegion: !Ref AwsRegion
+        Subnet1ID: !Ref Subnet1ID
+        Subnet2ID: !Ref Subnet2ID
+        VPCID: !Ref VPCID
+        EmailAddress: !Ref EmailAddress
+        Env: !Ref Env
