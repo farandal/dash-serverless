@@ -34,6 +34,9 @@ Metadata:
       - MinCapacity
       - SecondsUntilAutoPause
 Parameters:
+
+  AwsRegion:
+    Type: String
   Subnet1ID:
     Type: String
   Subnet2ID:
@@ -127,8 +130,7 @@ Parameters:
   EngineVersion:
     Description: 'Aurora Serverless PostgreSQL version.'
     Type: String
-    AllowedValues: ['14.3', '13.7', '10.18.3'] # aws rds describe-db-engine-versions --engine aurora-postgresql --query 'DBEngineVersions[?contains(SupportedEngineModes,`serverless`)].EngineVersion'
-    Default: '14.3'
+    Default: '15.3'
   EmailAddress:
       Description: 'Email address to receive RDS notifications'
       Type: String
@@ -147,6 +149,8 @@ Mappings:
       ClusterParameterGroupFamily: 'aurora-postgresql13'
     '14.3':
       ClusterParameterGroupFamily: 'aurora-postgresql14'
+    '15.3':
+      ClusterParameterGroupFamily: 'aurora-postgresql15'
 Conditions:
   # HasZone: !Not [!Equals [!Ref ParentZoneStack, '']]
   # HasSSHBastionSecurityGroup: !Not [!Equals [!Ref ParentSSHBastionStack, '']]
@@ -206,7 +210,7 @@ Resources:
     Type: 'AWS::RDS::DBSubnetGroup'
 
     Properties:
-      DBSubnetGroupName: !Sub "dash-${Env}-rds-subnet-group-${AWS::Region}-v2"
+      DBSubnetGroupName: !Sub "dash-${Env}-rds-subnet-group-${AwsRegion}-v2"
       DBSubnetGroupDescription: !Ref 'AWS::StackName'
       SubnetIds:
       - Ref: Subnet1ID

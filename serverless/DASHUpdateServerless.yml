@@ -16,6 +16,10 @@ Parameters:
     Type: String
   VPCID:
     Type: String
+
+  AwsRegion:
+    Description: AWS Region
+    Type: String
   
   Env:
     Description: 'Environment name'
@@ -115,8 +119,7 @@ Parameters:
   EngineVersion:
     Description: 'Aurora Serverless PostgreSQL version.'
     Type: String
-    AllowedValues: ['14.3', '13.7', '10.18.3']
-    Default: '14.3'
+    Default: '15.3'
 
   EmailAddress:
     Description: 'Email address to receive RDS notifications'
@@ -126,7 +129,7 @@ Resources:
   SocketGatewayStack:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: !Sub https://${S3CodeBucket}.s3.${AWS::Region}.amazonaws.com/templates/dash-sockets-gateway.yml
+      TemplateURL: !Sub https://${S3CodeBucket}.s3.${AwsRegion}.amazonaws.com/templates/dash-sockets-gateway.yml
       Parameters:
         S3CodeBucket: !Ref S3CodeBucket
         NodeJsLambdaLayerName: !Ref NodeJsLambdaLayerName
@@ -134,8 +137,9 @@ Resources:
   DatabaseStack:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: !Sub https://${S3CodeBucket}.s3.${AWS::Region}.amazonaws.com/templates/aurora-postgres-serverless-rds.stack.yml
+      TemplateURL: !Sub https://${S3CodeBucket}.s3.${AwsRegion}.amazonaws.com/templates/aurora-postgres-serverless-rds.stack.yml
       Parameters:
+        AwsRegion: !Ref AwsRegion  
         Subnet1ID: !Ref Subnet1ID
         Subnet2ID: !Ref Subnet2ID
         VPCID: !Ref VPCID

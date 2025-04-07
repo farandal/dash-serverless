@@ -25,6 +25,7 @@ echo "aws cloudformation update-stack \
 --stack-name $AWS_STACK \
 --template-body file://$UPDATE_TEMPLATE_BODY \
 --parameters \
+ParameterKey=EmailAddress,ParameterValue=$AWS_EMAIL_NOTIFICATION_ADDRESS \
 ParameterKey=CodeVersion,ParameterValue=prod,\
 ParameterKey=NodeJsLambdaLayerName,ParameterValue=$AWS_LAMBDA_LAYER_NAME,\
 ParameterKey=DomainCertificateARN,ParameterValue=$DOMAIN_CERTIFICATE_ARN,\
@@ -79,6 +80,7 @@ ParameterKey=MinCapacity,ParameterValue=$AWS_MIN_CAPACITY \
 ParameterKey=SecondsUntilAutoPause,ParameterValue=$AWS_SECONDS_UNTIL_AUTO_PAUSE \
 ParameterKey=EngineVersion,ParameterValue=$AWS_ENGINE_VERSION \
 ParameterKey=EmailAddress,ParameterValue=$AWS_EMAIL_NOTIFICATION_ADDRESS \
+ParameterKey=AwsRegion,ParameterValue=$AWS_REGION \
 --capabilities CAPABILITY_IAM
 # Wait for stack update to complete
 echo "Waiting for stack update to complete..."
