@@ -1,0 +1,36 @@
+{
+  "name": "dash-serverless",
+  "version": "1.0.0",
+  "description": "DASH Serverless AWS CF Setup",
+  "author": "Francisco Aranda <farandal@gmail.com>",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build-layer": "cd ./serverless/nodejs && yarn install && yarn build && yarn run package",
+    "build-lambdas": "cd ./aws && ./build.sh",
+    "deploy-lambdas-toFix": "cd ./aws && npx ts-node -r dotenv/config ./upload.mjs",  
+    "create-stack": "./aws/createStack.sh",    
+    "upload": "cd ./aws && npx ts-node -r dotenv/config ./upload.mjs",  
+    "update-stack": "./aws/updateStack.sh",
+    "build": "yarn build-layer && yarn build-lambdas",
+    "aws-ci": "yarn build-layer && yarn deploy-lambdas && yarn update-stack"
+  },
+  "dependencies": {
+  },
+  "devDependencies": {
+    "@aws-sdk/client-api-gateway": "^3.525.0",
+    "@aws-sdk/client-apigatewaymanagementapi": "^3.525.0",
+    "@aws-sdk/client-cloudformation": "^3.525.0",
+    "@aws-sdk/client-dynamodb": "^3.525.0",
+    "@aws-sdk/client-lambda": "^3.525.0",
+    "@aws-sdk/client-s3": "^3.525.0",
+    "@aws-sdk/client-secrets-manager": "^3.525.0",
+    "@aws-sdk/client-ses": "^3.525.0",
+    "@aws-sdk/lib-dynamodb": "^3.525.0",
+    "@aws-sdk/s3-request-presigner": "^3.525.0",
+    "js-yaml": "^4.1.0",
+    "winston": "^3.14.2",
+    "dotenv": "^16.4.5"
+  }
+}
