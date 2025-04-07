@@ -56,6 +56,7 @@ aws cloudformation update-stack \
 --stack-name $AWS_STACK \
 --template-body file://$UPDATE_TEMPLATE_BODY \
 --parameters \
+ParameterKey=Env,ParameterValue=$ENV \
 ParameterKey=CodeVersion,ParameterValue=prod \
 ParameterKey=NodeJsLambdaLayerName,ParameterValue=$AWS_LAMBDA_LAYER_NAME \
 ParameterKey=DomainCertificateARN,ParameterValue=$DOMAIN_CERTIFICATE_ARN \

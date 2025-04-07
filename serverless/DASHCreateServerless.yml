@@ -6,6 +6,11 @@ Parameters:
     Description: S3 Code Bucket
     Type: String
     Default: dash-stack-code
+  Env:
+    Description: 'Environment name'
+    Type: String
+    AllowedValues: ['staging', 'production']
+    Default: 'staging'
 
 Resources:
   S3CodeBucketResource:

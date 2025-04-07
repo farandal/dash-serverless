@@ -36,4 +36,5 @@ aws cloudformation create-stack \
 --template-body file://$CREATE_TEMPLATE_BODY \
 --parameters \
 ParameterKey=S3CodeBucket,ParameterValue=$AWS_CODE_BUCKET \
+ParameterKey=Env,ParameterValue=$ENV \
 --capabilities CAPABILITY_IAM
