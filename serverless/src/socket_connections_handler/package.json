@@ -1,0 +1,9 @@
+{
+    "name": "socket-ping-handler",
+    "description": "Socket Ping Handler",
+    "type": "module",
+    "version": "1.0",
+    "main": "index.mjs",
+    "author": "Francisco Aranda L <farandal@gmail.com>",
+    "license": "ISC"
+  }

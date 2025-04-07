@@ -1,0 +1,46 @@
+{
+    "name": "nodejs",
+    "version": "1.0.0",
+    "description": "PW COM Lambda nodejs Layer",
+    "main": "index.js",
+    "scripts": {
+        "build": "tsc",
+        "package": "npm run build"
+    },
+    "keywords": [],
+    "author": "Francisco Aranda <farandal@gmail.com>",
+    "license": "ISC",
+    "dependencies": {
+        "@aws-sdk/client-api-gateway": "^3.525.0",
+        "@aws-sdk/client-apigatewaymanagementapi": "^3.525.0",
+        "@aws-sdk/client-cloudformation": "^3.525.0",
+        "@aws-sdk/client-dynamodb": "^3.525.0",
+        "@aws-sdk/client-lambda": "^3.525.0",
+        "@aws-sdk/client-s3": "^3.525.0",
+        "@aws-sdk/client-secrets-manager": "^3.525.0",
+        "@aws-sdk/client-ses": "^3.525.0",
+        "@aws-sdk/lib-dynamodb": "^3.525.0",
+        "@aws-sdk/s3-request-presigner": "^3.525.0",
+        "@babel/cli": "^7.14.0",
+        "@babel/core": "^7.14.0",
+        "@babel/node": "^7.14.0",
+        "@babel/preset-env": "^7.14.0",
+        "axios": "^1.6.7",
+        "https": "^1.0.0",
+        "mustache": "^4.2.0",
+        "nakedjsx": "^0.14.2",
+        "path": "^0.12.7",
+        "preact": "^10.19.6",
+        "react": "^18.2.0",
+        "react-dom": "^18.2.0",
+        "react-jsx": "^1.0.0"
+    },
+    "devDependencies": {
+        "@types/aws-lambda": "^8.10.134",
+        "@types/node": "^20.11.24",
+        "typescript": "^5.3.3"
+    },
+    "_moduleAliases": {
+        "@pw-socket-lambda-layer": "/opt/nodejs/pw-socket-lambda-layer"
+    }
+}

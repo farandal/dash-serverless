@@ -1,0 +1,9 @@
+{
+    "name": "socket-message-handler",
+    "description": "Socket Message Handler",
+    "type": "module",
+    "version": "1.0",
+    "main": "index.mjs",
+    "author": "Francisco Aranda L <farandal@gmail.com>",
+    "license": "ISC"
+  }

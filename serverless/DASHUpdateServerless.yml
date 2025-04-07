@@ -1,0 +1,152 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: |
+  DASH Serverless Stack - Creates AWS Lambda functions, layers, IAM roles and policies for serverless application:
+  - NodeJS Lambda Layer for shared code
+  - Lambda execution IAM role with required permissions
+  - ACM certificates for domains
+  - S3 bucket for code storage
+  - Configurable parameters for certificates, bucket names and versions
+
+Parameters:
+# DOMAIN, CERTIFICATES, VPC, SUBNETS
+
+  Subnet1ID:
+    Type: String
+  Subnet2ID:
+    Type: String
+  VPCID:
+    Type: String
+  
+  Env:
+    Description: 'Environment name'
+    Type: String
+    AllowedValues: ['staging', 'production']
+    Default: 'staging'
+  
+  DomainCertificateARN:
+    Description: Domain Certificate Arn
+    Type: String
+    Default: arn:aws:acm:us-east-1:022648472487:certificate/1f5b040a-10da-473f-acf9-03d296b87e84
+  RegionalDomainCertificateARN:
+    Description: Regional Domain Certificate Arn
+    Type: String
+    Default: arn:aws:acm:us-east-2:022648472487:certificate/b210c0a5-dc6f-4dfc-b637-df19137666f4
+  #  SocketsDomainName:
+  #    Description: Sockets Domain Name
+  #    Type: String
+  #    Default: sockets.pinoywok.cl
+  
+# S3
+  S3CodeBucket:
+    Description: S3 Code Bucket
+    Type: String
+    Default: dash-stack-code
+  CodeVersion:
+    Description: CodeVersion
+    Type: String
+    Default: 1
+
+# LAMBDAS
+  NodeJsLambdaLayerName:
+    Description: dash-lambda-layer
+    Type: String
+    Default: dash-lambda-layer
+
+# DATABASE
+
+  DBName:
+    Description: 'Name of the database (ignored when DBSnapshotIdentifier is set, value used from snapshot).'
+    Type: String
+  DBMasterUsername:
+    Description: 'The master user name for the DB instance (ignored when DBSnapshotIdentifier is set, value used from snapshot).'
+    Type: String
+  DBMasterUserPassword:
+    Description: 'The master password for the DB instance (ignored when DBSnapshotIdentifier is set, value used from snapshot. Also ignored when ParentSecretStack is used).'
+    Type: String
+    NoEcho: true
+  DBSnapshotIdentifier:
+    Description: 'Optional identifier for the DB cluster snapshot from which you want to restore (leave blank to create an empty cluster).'
+    Type: String
+    Default: ''
+  DBBackupRetentionPeriod:
+    Description: 'The number of days to keep snapshots of the cluster.'
+    Type: Number
+    MinValue: '1'
+    MaxValue: '35'
+    Default: '30'
+  SubDomainNameWithDot:
+    Description: 'Name that is used to create the DNS entry with trailing dot, e.g. §{SubDomainNameWithDot}§{HostedZoneName}. Leave blank for naked (or apex and bare) domain. Requires ParentZoneStack parameter!'
+    Type: String
+    Default: 'aurora.'
+  PreferredBackupWindow:
+    Description: 'IGNORED BECAUSE OF A BUG IN CLOUDFORMATION! VALUE WILL APPLY IN THE FUTURE! The daily time range in UTC during which you want to create automated backups.'
+    Type: String
+    Default: '09:54-10:24'
+  PreferredMaintenanceWindow:
+    Description: 'IGNORED BECAUSE OF A BUG IN CLOUDFORMATION! VALUE WILL APPLY IN THE FUTURE! The weekly time range (in UTC) during which system maintenance can occur.'
+    Type: String
+    Default: 'sat:07:00-sat:07:30'
+  EnableDataApi:
+    Description: 'Enable the Data API (https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/data-api.html).'
+    Type: String
+    AllowedValues: ['true', 'false']
+    Default: 'false'
+  AutoPause:
+    Description: 'Enable automatic pause for a Serverless Aurora cluster. A cluster can be paused only when it has no connections. If a cluster is paused for more than seven days, the cluster might be backed up with a snapshot. In this case, the cluster is restored when there is a request to connect to it.'
+    Type: String
+    AllowedValues: ['true', 'false']
+    Default: 'true'
+  MaxCapacity:
+    Description: 'The maximum capacity units for a Serverless Aurora cluster.'
+    Type: String
+    AllowedValues: [2, 4, 8, 16, 32, 64, 192, 384]
+    Default: 2
+  MinCapacity:
+    Description: 'The minimum capacity units for a Serverless Aurora cluster.'
+    Type: String
+    AllowedValues: [0.5, 1, 2, 4, 8, 16, 32, 64, 192, 384]
+    Default: 0.5
+  SecondsUntilAutoPause:
+    Description: 'The time, in seconds, before a Serverless Aurora cluster is paused.'
+    Type: Number
+    MinValue: 1
+    MaxValue: 86400
+    Default: 300
+  EngineVersion:
+    Description: 'Aurora Serverless PostgreSQL version.'
+    Type: String
+    AllowedValues: ['14.3', '13.7', '10.18.3']
+    Default: '14.3'
+
+Resources:
+  SocketGatewayStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub https://${S3CodeBucket}.s3.${AWS::Region}.amazonaws.com/templates/dash-sockets-gateway.yml
+      Parameters:
+        S3CodeBucket: !Ref S3CodeBucket
+        NodeJsLambdaLayerName: !Ref NodeJsLambdaLayerName
+
+  DatabaseStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub https://${S3CodeBucket}.s3.${AWS::Region}.amazonaws.com/templates/aurora-postgres-serverless-rds.stack.yml
+      Parameters:
+        Subnet1ID: !Ref Subnet1ID
+        Subnet2ID: !Ref Subnet2ID
+        VPCID: !Ref VPCID
+        DBName: !Ref DBName
+        Env: !Ref Env
+        DBMasterUsername: !Ref DBMasterUsername
+        DBMasterUserPassword: !Ref DBMasterUserPassword
+        DBSnapshotIdentifier: !Ref DBSnapshotIdentifier
+        DBBackupRetentionPeriod: !Ref DBBackupRetentionPeriod
+        SubDomainNameWithDot: !Ref SubDomainNameWithDot
+        PreferredBackupWindow: !Ref PreferredBackupWindow
+        PreferredMaintenanceWindow: !Ref PreferredMaintenanceWindow
+        EnableDataApi: !Ref EnableDataApi
+        AutoPause: !Ref AutoPause
+        MaxCapacity: !Ref MaxCapacity
+        MinCapacity: !Ref MinCapacity
+        SecondsUntilAutoPause: !Ref SecondsUntilAutoPause
+        EngineVersion: !Ref EngineVersion
