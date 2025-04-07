@@ -126,8 +126,6 @@ const uploadLambdaLayer = async () => {
     console.log(`Uploading layer from: ${layerPath}`);
 
     await uploadFileToS3(AWS_CODE_BUCKET, layerPath);
-
-   
 };
 
 const uploadServerlessAppCode = async () => {
@@ -147,7 +145,13 @@ const uploadServerlessAppCode = async () => {
         for (const fileName of filePaths) {
             await uploadFileToS3(AWS_CODE_BUCKET, folderPath + fileName);
         }
+    } catch (err) {
+        throw err;
+    }
+};
 
+const uploadTemplates = async () => {
+    try {
         const templateFiles = await getFileNamesInFolder(templatesPath);
         for (const fileName of templateFiles) {
             await uploadFileToS3(AWS_CODE_BUCKET, templatesPath + fileName, 'templates');
@@ -156,6 +160,24 @@ const uploadServerlessAppCode = async () => {
         throw err;
     }
 };
+
+const uploadType = process.argv[2];
+if (uploadType === 'layer') {
+    await prepareNodeJsLayer();
+    await uploadLambdaLayer();
+    process.exit(0);
+    
+} else if (uploadType === 'lambdas') {
+    await uploadServerlessAppCode();
+    process.exit(0);
+ 
+} else if (uploadType === 'templates') {
+    await uploadTemplates();
+    process.exit(0);
+}
+
+
 await prepareNodeJsLayer();
 await uploadLambdaLayer();
 await uploadServerlessAppCode();
+await uploadTemplates();
