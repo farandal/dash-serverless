@@ -6,3 +6,4 @@ nodejs-layer
 aws/.env
 aws/cf-templates-all
 LARAVEL-PUSHER.md
+aws/*.bkup
