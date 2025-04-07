@@ -1,0 +1,8 @@
+node_modules
+serverless/nodejs/dist
+logs
+output
+nodejs-layer
+aws/.env
+aws/cf-templates-all
+LARAVEL-PUSHER.md
