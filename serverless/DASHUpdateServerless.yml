@@ -125,6 +125,21 @@ Parameters:
     Description: 'Email address to receive RDS notifications'
     Type: String
 
+  GitHubOwner:
+    Type: String
+    Description: 'GitHub repository owner'
+  GitHubRepo:
+    Type: String
+    Description: 'GitHub repository name'
+  GitHubToken:
+    Type: String
+    Description: 'GitHub personal access token'
+    NoEcho: true
+  GitHubBranch:
+    Type: String
+    Description: 'GitHub branch name'
+    Default: 'main'
+
 Resources:
   SocketGatewayStack:
     Type: AWS::CloudFormation::Stack
@@ -178,3 +193,14 @@ Resources:
       TemplateURL: !Sub https://${S3CodeBucket}.s3.${AwsRegion}.amazonaws.com/templates/ecr.stack.yml
       Parameters:
         Env: !Ref Env
+
+  CodeBuildStack:
+      Type: AWS::CloudFormation::Stack
+      Properties:
+        TemplateURL: !Sub https://${S3CodeBucket}.s3.${AwsRegion}.amazonaws.com/templates/codebuild.stack.yml
+        Parameters:
+          Env: !Ref Env
+          GitHubOwner: !Ref GitHubOwner
+          GitHubRepo: !Ref GitHubRepo
+          GitHubToken: !Ref GitHubToken
+          GitHubBranch: !Ref GitHubBranch

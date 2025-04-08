@@ -17,40 +17,6 @@ while IFS= read -r line; do
 
 done < $PWD/aws/.env
 
-echo "AWS Profile: $AWS_PROFILE \n"
-echo "AWS Stack: $AWS_STACK \n"
-
-echo "aws cloudformation update-stack \
---profile $AWS_PROFILE \
---stack-name $AWS_STACK \
---template-body file://$UPDATE_TEMPLATE_BODY \
---parameters \
-ParameterKey=EmailAddress,ParameterValue=$AWS_EMAIL_NOTIFICATION_ADDRESS \
-ParameterKey=CodeVersion,ParameterValue=prod,\
-ParameterKey=NodeJsLambdaLayerName,ParameterValue=$AWS_LAMBDA_LAYER_NAME,\
-ParameterKey=DomainCertificateARN,ParameterValue=$DOMAIN_CERTIFICATE_ARN,\
-ParameterKey=RegionalDomainCertificateARN,ParameterValue=$REGIONAL_DOMAIN_CERTIFICATE_ARN,\
-ParameterKey=S3CodeBucket,ParameterValue=$AWS_CODE_BUCKET,\
-ParameterKey=CodeVersion,ParameterValue=$new_version,\
-ParameterKey=Subnet1ID,ParameterValue=$AWS_SUBNET1_ID,\
-ParameterKey=Subnet2ID,ParameterValue=$AWS_SUBNET2_ID,\
-ParameterKey=VPCID,ParameterValue=$AWS_VPC_ID,\
-ParameterKey=DBName,ParameterValue=$AWS_DB_NAME,\
-ParameterKey=DBMasterUsername,ParameterValue=$AWS_DB_MASTER_USERNAME,\
-ParameterKey=DBMasterUserPassword,ParameterValue=$AWS_DB_MASTER_USER_PASSWORD,\
-ParameterKey=DBSnapshotIdentifier,ParameterValue='',\
-ParameterKey=DBBackupRetentionPeriod,ParameterValue=$AWS_DB_BACKUP_RETENTION_PERIOD,\
-ParameterKey=SubDomainNameWithDot,ParameterValue=$AWS_SUB_DOMAIN_NAME_WITH_DOT,\
-ParameterKey=PreferredBackupWindow,ParameterValue=$AWS_PREFERRED_BACKUP_WINDOW,\
-ParameterKey=PreferredMaintenanceWindow,ParameterValue=$AWS_PREFERRED_MAINTENANCE_WINDOW,\
-ParameterKey=EnableDataApi,ParameterValue=$AWS_ENABLE_DATA_API,\
-ParameterKey=AutoPause,ParameterValue=$AWS_AUTO_PAUSE,\
-ParameterKey=MaxCapacity,ParameterValue=$AWS_MAX_CAPACITY,\
-ParameterKey=MinCapacity,ParameterValue=$AWS_MIN_CAPACITY,\
-ParameterKey=SecondsUntilAutoPause,ParameterValue=$AWS_SECONDS_UNTIL_AUTO_PAUSE,\
-ParameterKey=EngineVersion,ParameterValue=$AWS_ENGINE_VERSION \
---capabilities CAPABILITY_IAM"
-
 aws cloudformation update-stack \
 --profile $AWS_PROFILE \
 --stack-name $AWS_STACK \
@@ -82,6 +48,10 @@ ParameterKey=SecondsUntilAutoPause,ParameterValue=$AWS_SECONDS_UNTIL_AUTO_PAUSE 
 ParameterKey=EngineVersion,ParameterValue=$AWS_ENGINE_VERSION \
 ParameterKey=EmailAddress,ParameterValue=$AWS_EMAIL_NOTIFICATION_ADDRESS \
 ParameterKey=AwsRegion,ParameterValue=$AWS_REGION \
+ParameterKey=GitHubOwner,ParameterValue=$GITHUB_OWNER \
+ParameterKey=GitHubRepo,ParameterValue=$GITHUB_REPO \
+ParameterKey=GitHubToken,ParameterValue=$GITHUB_TOKEN \
+ParameterKey=GitHubBranch,ParameterValue=$GITHUB_BRANCH \
 --capabilities CAPABILITY_IAM
 # Wait for stack update to complete
 echo "Waiting for stack update to complete..."

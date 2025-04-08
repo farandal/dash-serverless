@@ -11,6 +11,8 @@ import {
     CreateBucketCommand
 } from "@aws-sdk/client-s3";
 
+import { CloudFormationClient, ValidateTemplateCommand } from "@aws-sdk/client-cloudformation";
+
 
 import dotenv from 'dotenv';
 dotenv.config();
@@ -154,7 +156,25 @@ const uploadTemplates = async () => {
     try {
         const templateFiles = await getFileNamesInFolder(templatesPath);
         for (const fileName of templateFiles) {
-            await uploadFileToS3(AWS_CODE_BUCKET, templatesPath + fileName, 'templates');
+            // Read template file content
+            const templateContent = await fs.promises.readFile(templatesPath + fileName, 'utf8');
+            
+            // Validate template using CloudFormation API
+            const validateParams = {
+                TemplateBody: templateContent
+            };
+            
+            try {
+                const cfnClient = new CloudFormationClient();
+                await cfnClient.send(new ValidateTemplateCommand(validateParams));
+                console.log(`Template ${fileName} is valid`);
+                
+                // Upload template only if validation passes
+                await uploadFileToS3(AWS_CODE_BUCKET, templatesPath + fileName, 'templates');
+            } catch (validationError) {
+                console.error(`Template ${fileName} validation failed:`, validationError);
+                throw validationError;
+            }
         }
     } catch (err) {
         throw err;
