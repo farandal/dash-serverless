@@ -18,6 +18,22 @@ Parameters:
     AllowedValues: ['staging', 'production']
     Default: 'staging'
 
+  AllowedIP:
+    Description: 'IP address allowed to access Redis (CIDR format)'
+    Type: String
+    Default: '0.0.0.0/0'  # Default to all IPs, but should be restricted in production
+  
+  ApplicationSecurityGroup:
+    Description: 'Security group ID of the application servers'
+    Type: String
+    Default: ''  # Optional, can be left empty
+
+  RedisPassword:
+    Description: 'Password for Redis authentication'
+    Type: String
+    NoEcho: true  # This hides the password in CloudFormation console
+    Default: ''
+
 Resources:
   RedisSNSTopic:
     Type: AWS::SNS::Topic
@@ -34,10 +50,20 @@ Resources:
       GroupDescription: Security group for DASH Redis
       VpcId: !Ref VPCID
       SecurityGroupIngress:
+        # Allow access from specific IP addresses
         - IpProtocol: tcp
           FromPort: 6379
           ToPort: 6379
-          CidrIp: 0.0.0.0/0
+          CidrIp: !Ref AllowedIP  # Parameter for your application's IP
+          Description: "Application server access"
+        
+        # Allow access from other security groups (e.g., your application servers)
+        # - IpProtocol: tcp
+        #   FromPort: 6379
+        #   ToPort: 6379
+        #   SourceSecurityGroupId: !Ref ApplicationSecurityGroup
+        #   Description: "Application security group access"
+
 
   RedisSubnetGroup:
     Type: AWS::ElastiCache::SubnetGroup
@@ -65,3 +91,24 @@ Resources:
       SubnetIds:
         - !Ref Subnet1ID
         - !Ref Subnet2ID
+#       UserGroupId: !Ref RedisUserGroup
+#
+#  RedisUserGroup:
+#    Type: AWS::ElastiCache::UserGroup
+#    Properties:
+#      Engine: redis
+#      UserGroupId: !Sub "dash-${Env}-redis-user-group"
+#      UserIds:
+#        - !Ref RedisUser
+#
+#  RedisUser:
+#    Type: AWS::ElastiCache::User
+#    Properties:
+#      Engine: redis
+#      UserId: !Sub "dash-${Env}-redis-user"
+#      UserName: default
+#      Authentication:
+#        Type: password
+#        PasswordCount: 1
+#        Passwords:
+#          - !Ref RedisPassword

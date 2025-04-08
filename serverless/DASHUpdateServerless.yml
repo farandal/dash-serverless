@@ -171,3 +171,10 @@ Resources:
         VPCID: !Ref VPCID
         EmailAddress: !Ref EmailAddress
         Env: !Ref Env
+
+  ECRStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub https://${S3CodeBucket}.s3.${AwsRegion}.amazonaws.com/templates/ecr.stack.yml
+      Parameters:
+        Env: !Ref Env
