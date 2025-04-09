@@ -13,7 +13,8 @@
     "create-stack": "./aws/createStack.sh",    
     "upload": "cd ./aws && npx ts-node -r dotenv/config ./upload.mjs",     
     "upload-lambdas": "cd ./aws && npx ts-node -r dotenv/config ./upload-lambdas.mjs",  
-    "update-stack": "./aws/updateStack.sh",
+    "update-stack": "chmod +x ./aws/updateStack.sh && ./aws/updateStack.sh",
+    "update-secrets": "chmod +x ./aws/updateSecrets.sh && ./aws/updateSecrets.sh",
     "build": "yarn build-layer && yarn build-lambdas",
     "aws-ci": "yarn build-layer && yarn deploy-lambdas && yarn update-stack"
   },

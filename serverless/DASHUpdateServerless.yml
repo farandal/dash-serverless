@@ -141,6 +141,7 @@ Parameters:
     Default: 'main'
 
 Resources:
+
   SocketGatewayStack:
     Type: AWS::CloudFormation::Stack
     Properties:
@@ -194,12 +195,13 @@ Resources:
       Parameters:
         Env: !Ref Env
 
-  CodeBuildStack:
+  CodeBuildProductionStack:
       Type: AWS::CloudFormation::Stack
       Properties:
         TemplateURL: !Sub https://${S3CodeBucket}.s3.${AwsRegion}.amazonaws.com/templates/codebuild.stack.yml
         Parameters:
-          Env: !Ref Env
+          Env: "staging"
+          BuildSpec: 'aws/codebuild/buildspec.staging.yml'
           GitHubOwner: !Ref GitHubOwner
           GitHubRepo: !Ref GitHubRepo
           GitHubToken: !Ref GitHubToken

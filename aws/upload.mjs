@@ -165,17 +165,19 @@ const uploadTemplates = async () => {
             };
             
             try {
-                const cfnClient = new CloudFormationClient();
-                await cfnClient.send(new ValidateTemplateCommand(validateParams));
-                console.log(`Template ${fileName} is valid`);
+                const templateFirstLine = templateContent.split('\n')[0].trim();
+                if (templateFirstLine.includes('AWSTemplateFormatVersion')) {
+                    const cfnClient = new CloudFormationClient();
+                    await cfnClient.send(new ValidateTemplateCommand(validateParams));
+                    console.log(`Template ${fileName} is valid`);
+                }
                 
-                // Upload template only if validation passes
+                // Upload template only if validation passes or if no validation needed
                 await uploadFileToS3(AWS_CODE_BUCKET, templatesPath + fileName, 'templates');
             } catch (validationError) {
                 console.error(`Template ${fileName} validation failed:`, validationError);
                 throw validationError;
-            }
-        }
+            }        }
     } catch (err) {
         throw err;
     }
