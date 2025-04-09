@@ -71,7 +71,7 @@ Resources:
                   - s3:GetObject
                   - s3:GetObjectVersion
                 Resource: '*'
-
+                
   CodeBuildSourceCredential:
     Type: AWS::CodeBuild::SourceCredential
     #DeletionPolicy: Retain

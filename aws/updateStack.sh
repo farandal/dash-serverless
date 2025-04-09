@@ -24,14 +24,14 @@ if [ "$SKIP_UPDATE" != "true" ]; then
   echo "Validating CloudFormation template..."
   aws cloudformation validate-template \
     --template-body file://$UPDATE_TEMPLATE_BODY \
-    --profile $AWS_PROFILE > /dev/null 2>&1
+    --profile $AWS_LOCAL_PROFILE > /dev/null 2>&1
   if [ $? -ne 0 ]; then
     echo "Template validation failed. Exiting..."
     exit 1
   fi
 
   aws cloudformation update-stack \
-  --profile $AWS_PROFILE \
+  --profile $AWS_LOCAL_PROFILE \
   --stack-name $AWS_STACK \
   --template-body file://$UPDATE_TEMPLATE_BODY \
   --parameters \
@@ -68,7 +68,7 @@ if [ "$SKIP_UPDATE" != "true" ]; then
   # Wait for stack update to complete
   echo "Waiting for stack update to complete..."
   aws cloudformation wait stack-update-complete \
-  --profile $AWS_PROFILE \
+  --profile $AWS_LOCAL_PROFILE \
   --stack-name $AWS_STACK
   if [ $? -eq 0 ]; then
       echo "Stack update completed successfully"
@@ -77,7 +77,7 @@ if [ "$SKIP_UPDATE" != "true" ]; then
       timestamp=$(date +%Y%m%d_%H%M%S)
       echo "{\"mainStack\": " > ./logs/stack_resources_${timestamp}.json
       aws cloudformation describe-stack-resources \
-      --profile $AWS_PROFILE \
+      --profile $AWS_LOCAL_PROFILE \
       --stack-name $AWS_STACK \
       --query 'StackResources[].{LogicalId:LogicalResourceId,PhysicalId:PhysicalResourceId,Type:ResourceType,ARN:PhysicalResourceId}' \
       --output json >> ./logs/stack_resources_${timestamp}.json
@@ -87,7 +87,7 @@ if [ "$SKIP_UPDATE" != "true" ]; then
       echo ", \"nestedStacks\": {" >> ./logs/stack_resources_${timestamp}.json
       first=true
       aws cloudformation list-stack-resources \
-      --profile $AWS_PROFILE \
+      --profile $AWS_LOCAL_PROFILE \
       --stack-name $AWS_STACK \
       --query 'StackResourceSummaries[?ResourceType==`AWS::CloudFormation::Stack`].PhysicalResourceId' \
       --output text | while read -r nested_stack; do
@@ -98,7 +98,7 @@ if [ "$SKIP_UPDATE" != "true" ]; then
           fi
           echo "\"$nested_stack\": " >> ./logs/stack_resources_${timestamp}.json
           aws cloudformation describe-stack-resources \
-          --profile $AWS_PROFILE \
+          --profile $AWS_LOCAL_PROFILE \
           --stack-name $nested_stack \
           --query 'StackResources[].{LogicalId:LogicalResourceId,PhysicalId:PhysicalResourceId,Type:ResourceType,ARN:PhysicalResourceId}' \
           --output json >> ./logs/stack_resources_${timestamp}.json
@@ -111,13 +111,13 @@ if [ "$SKIP_UPDATE" != "true" ]; then
       timestamp=$(date +%Y%m%d_%H%M%S)
       echo "{\"stackEvents\": " > ./logs/stack_failure_${timestamp}.json
       aws cloudformation describe-stack-events \
-      --profile $AWS_PROFILE \
+      --profile $AWS_LOCAL_PROFILE \
       --stack-name $AWS_STACK \
       --max-items 5 \
       --output json >> ./logs/stack_failure_${timestamp}.json
       echo ", \"stackErrors\": " >> ./logs/stack_failure_${timestamp}.json
       aws cloudformation describe-stack-events \
-      --profile $AWS_PROFILE \
+      --profile $AWS_LOCAL_PROFILE \
       --stack-name $AWS_STACK \
       --query 'StackEvents[?ResourceStatus==`UPDATE_FAILED` || ResourceStatus==`CREATE_FAILED` || ResourceStatus==`DELETE_FAILED`].{LogicalId:LogicalResourceId,Status:ResourceStatus,Reason:ResourceStatusReason}' \
       --output json >> ./logs/stack_failure_${timestamp}.json

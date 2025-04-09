@@ -27,11 +27,11 @@ done < $PWD/aws/.env
 #echo "Current version: $current_version"
 ## Print the new version number to the console
 #echo "New version number: $new_version"
-echo "AWS Profile: $AWS_PROFILE \n"
+echo "AWS Profile: $AWS_LOCAL_PROFILE \n"
 echo "AWS Stack: $AWS_STACK \n"
 
 aws cloudformation create-stack \
---profile $AWS_PROFILE \
+--profile $AWS_LOCAL_PROFILE \
 --stack-name $AWS_STACK \
 --template-body file://$CREATE_TEMPLATE_BODY \
 --parameters \
