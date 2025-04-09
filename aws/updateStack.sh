@@ -17,31 +17,6 @@ while IFS= read -r line; do
 
 done < $PWD/aws/.env
 
-# Create a JSON string with all parameters
-PARAMETERS_JSON=$(cat $PWD/aws/.env | grep -v '^#' | awk -F '=' '/.+/ {printf "%s\"%s\": \"%s\"", (NR==1?"":","), $1, $2}' | awk '{print "{"$0"}"}')
-echo "Parameters JSON: $PARAMETERS_JSON"
-
-# Create or update the secret in AWS Secrets Manager
-
-# Check if secret exists
-aws secretsmanager describe-secret \
-  --profile $AWS_PROFILE \
-  --secret-id "${AWS_STACK}-parameters" > /dev/null 2>&1
-
-if [ $? -eq 0 ]; then
-  # Secret exists, update it
-  aws secretsmanager update-secret \
-    --profile $AWS_PROFILE \
-    --secret-id "${AWS_STACK}-parameters" \
-    --secret-string "$PARAMETERS_JSON"
-else
-  # Secret doesn't exist, create it
-  aws secretsmanager create-secret \
-    --profile $AWS_PROFILE \
-    --name "${AWS_STACK}-parameters" \
-    --description "CloudFormation stack parameters for ${AWS_STACK}" \
-    --secret-string "$PARAMETERS_JSON"
-fi
 
 if [ "$SKIP_UPDATE" != "true" ]; then
 

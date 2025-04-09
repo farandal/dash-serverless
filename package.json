@@ -8,12 +8,12 @@
   "type": "module",
   "scripts": {
     "build-layer": "cd ./serverless/nodejs && yarn install && yarn build && yarn run package",
-    "build-lambdas": "cd ./aws && ./build.sh",
+    "build-lambdas": "cd ./aws && chmod +x ./build.sh && ./build.sh",
     "deploy-lambdas-toFix": "cd ./aws && npx ts-node -r dotenv/config ./upload.mjs",  
-    "create-stack": "./aws/createStack.sh",    
+    "create-stack": "chmod +x ./aws/createStack.sh && ./aws/createStack.sh",    
     "upload": "cd ./aws && npx ts-node -r dotenv/config ./upload.mjs",     
     "upload-lambdas": "cd ./aws && npx ts-node -r dotenv/config ./upload-lambdas.mjs",  
-    "update-stack": "chmod +x ./aws/updateStack.sh && ./aws/updateStack.sh",
+    "update-stack": "yarn upload templates && yarn update-secrets && chmod +x ./aws/updateStack.sh && ./aws/updateStack.sh",
     "update-secrets": "chmod +x ./aws/updateSecrets.sh && ./aws/updateSecrets.sh",
     "build": "yarn build-layer && yarn build-lambdas",
     "aws-ci": "yarn build-layer && yarn deploy-lambdas && yarn update-stack"
